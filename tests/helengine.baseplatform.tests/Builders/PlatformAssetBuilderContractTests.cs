@@ -1,18 +1,28 @@
-using helengine.baseplatform.Descriptors;
+using helengine.baseplatform.Requests;
 
 namespace helengine.baseplatform.tests.Builders;
 
 /// <summary>
-/// Verifies the contract library can be referenced by the test project.
+/// Verifies the platform asset builder contract can stream progress and diagnostics.
 /// </summary>
 public class PlatformAssetBuilderContractTests {
     /// <summary>
-    /// Proves the test project can construct a simple compatibility range once the contract exists.
+    /// Ensures builders expose descriptor metadata and return a final report after reporting progress.
     /// </summary>
     [Fact]
-    public void ContractAssembly_WhenReferenced_ExposesCompatibilityTypes() {
-        var range = new EngineCompatibilityRange("1.0.0", "2.0.0");
+    public async Task BuildAsync_WhenInvoked_StreamsProgressAndReturnsReport() {
+        var builder = new FakePlatformAssetBuilder();
+        var progressReporter = new RecordingProgressReporter();
+        var diagnosticReporter = new RecordingDiagnosticReporter();
 
-        Assert.Equal("1.0.0", range.MinimumVersion);
+        var report = await builder.BuildAsync(
+            new PlatformBuildRequest(TestManifestFactory.Create(), "out", "temp"),
+            progressReporter,
+            diagnosticReporter,
+            CancellationToken.None);
+
+        Assert.Equal("test-builder", builder.Descriptor.BuilderId);
+        Assert.Single(progressReporter.Updates);
+        Assert.True(report.Succeeded);
     }
 }
